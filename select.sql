@@ -74,17 +74,87 @@ select * from member where mem_name like "%이%크%";
 -- 글자 수 매치
 select * from member where mem_name like"__핑크";
 
+# -------------------- 05/12 --------------------
+select * from buy;
+
+-- 1. buy table 에서 amount 가 4 이상인 모든 열 조회하기
+select * from buy where amount >= 4;
+
+-- 2. buy table 에서 prod_name이 지갑 또는 청바지에 해당하는 모든 열 데이터 조회하기
+select * from buy where prod_name in ("지갑", "청바지");
 
 
+-- order by
+-- 정렬(결과가 출력되는 순서를 조절)
+select mem_id, mem_name, debut_date from member;
+select mem_id, mem_name, debut_date from member order by debut_date;
+
+-- 정렬옵션
+-- ASC : 오름차순
+-- DESC : 내림차순
+-- 생략하면 ASC
+
+-- 평균키가 164 이상인 회원들 키의 내림차순
+select * from member where height >= 164 order by height DESC;
+
+-- 정렬기준을 여러 열로 지정하기
+select * from member where height >= 164 order by height DESC, debut_date ASC;
+
+-- limit(출력 개수 제한)
+select * from member limit 3;
+
+-- 데뷔일자가 가장 빠른 3건만 조회
+select * from member order by debut_date DESC limit 3;
+
+-- 데이터의 중복 제거
+select addr from member;
+
+select addr from member order by addr asc;
+
+select distinct addr from member order by addr asc;
 
 
+-- group by
+-- 그룹화
 
+-- 각 회원이 구매한 물품의 총 개수를 알고 싶은 경우
+select mem_id, amount from buy order by mem_id;
 
+select mem_id, sum(amount) from buy group by mem_id;
+select mem_id "회원 아이디", sum(amount) "총 구매 개수" from buy group by mem_id;
 
+-- 각 회원이 구매한 금액의 총합을 알고 싶은 경우
+select mem_id "회원 아이디", sum(price * amount) "총합" from buy group by mem_id;
 
+-- 한 거래당 구매하는 물품 수 평균
+select mem_id "회원 아이디", avg(amount) "평균 구매 개수" from buy group by mem_id;
 
+-- 전체 회원의 구매하는 물품 수 평균
+select avg(amount) from buy;
 
+-- 전체 회원 수를 알고 싶은 경우
+select count(*) from member;
 
+-- 연락처가 있는 회원 수만 알고 싶은 경우
+select count(phone1) "연락처가 있는 회원 수" from member;
+
+-- having
+select mem_id "회원 아이디", sum(price * amount) "총 구매 금액" from buy group by mem_id;
+
+-- 위 데이터에서 총 구매액이 1000이상인 회원에게만 사은품을 증정하려고 한다면
+select mem_id "회원 아이디", sum(price * amount) "총 구매 금액" where sum(price * amount) >= 1000 group by mem_id;
+-- 집계 함수는 where 에서 사용할 수 없다.
+
+select mem_id "회원 아이디", sum(price * amount) "총 구매 금액" from buy group by mem_id having sum(price * amount) >= 1000;
+
+-- 위 데이터에서 총 금액이 큰 사용자부터 나타내려 한다면
+select mem_id "회원 아이디", sum(price * amount) "총 구매 금액" from buy group by mem_id having sum(price * amount) >= 1000 order by sum(price * amount) DESC;
+
+-- 연습문제
+-- 1. member 테이블에서 회원들을 height의 오름차순으로 조회
+select * from member order by height;
+-- 2. member 테이블의 phone1을 중복없이 조회하기
+select distinct phone1 from member where phone1;
 
 
 
