@@ -111,11 +111,109 @@ select * from buy cross join member;
 -- 예) 회사의 조직 관계
 
 -- 데이터 생성
-create table map_table(
+create table emp_table(
 	emp char(4),
 	manager char(4),
 	phone varchar(8)
 );
+
+
+insert into emp_table values ("대표", null, '0000');
+insert into emp_table values ("영업이사", "대표", '1111');
+insert into emp_table values ("관리이사", "대표", '2222');
+insert into emp_table values ("정보이사", "대표", '3333');
+insert into emp_table values ("영업과장", "영업이사", '1111-1');
+insert into emp_table values ("경리부장", "관리이사", '2222-1');
+insert into emp_table values ("인사부장", "관리이사", '2222-2');
+insert into emp_table values ("개발팀장", "정보이사", '3333-1');
+insert into emp_table values ("개발주임", "정보이사", '3333-2');
+
+select * from emp_table;
+
+-- 자체조인의 기본 형식
+select 열 목록
+from 테이블 별칭A
+	inner join 테이블 별칭B 
+	on 조인될 조건
+where 검색 조건;
+
+-- 경리부장의 직속 상관 연락처를 알고 싶다면
+select a.emp 직원, b.emp 직속상관, b.phone 직속상관연락처
+from emp_table a
+	inner join emp_table b 
+	on a.manager = b.emp
+where a.emp = "경리부장";
+
+
+-- 연습문제
+-- 1. buy 테이블과 member 테이블 을 이용해서 한번이라도 구매기록이 있는 테이블 추출하기
+select distinct b.mem_id, m.addr 
+from buy b
+	inner join member m
+	on b.mem_id = m.mem_id;
+
+CREATE TABLE aac_outcomes (
+age_upon_outcome varchar(15) COLLATE utf8mb4_general_ci NOT NULL,
+animal_id char(7) COLLATE utf8mb4_general_ci NOT NULL,
+animal_type varchar(10) COLLATE utf8mb4_general_ci NOT NULL,
+breed varchar(70) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+color varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+date_of_birth datetime NOT NULL,
+datetime datetime NOT NULL,
+monthyear varchar(90) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+name varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
+outcome_subtype varchar(25) COLLATE utf8mb4_general_ci NOT NULL,
+outcome_type varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+sex_upon_outcome varchar(20) COLLATE utf8mb4_general_ci NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- 2. 천재지변으로 인해서 데이터가 유실되었습니다.
+select outs.animal_id, outs.name, outs.datetime 나간기록, ins.datetime 들어온기록
+from aac_outcomes outs
+	left outer join aac_intakes ins
+	on outs.animal_id = ins.animal_id
+where ins.animal_id  is null
+order by outs.animal_id ASC;
+
+select outs.animal_id, outs.name, outs.datetime 나간기록, ins.datetime 들어온기록
+from aac_outcomes outs
+	left outer join aac_intakes ins
+	on outs.animal_id = ins.animal_id
+where ins.datetime is null
+order by outs.animal_id ASC;
+
+-- 3. 관리자의 실수로 일부 동물의 입양일이 잘못 입력되었음
+-- 보호 시작일 보다 입양일이 더 빠른 동물들의 아이디와 이름을 조회하는 sql문 작성하기
+-- 단 보호 시작일이 빠른 순으로 조회해야함
+select outs.animal_id, outs.name, outs.datetime 입양일, ins.datetime 보호시작일
+from aac_outcomes outs
+	inner join aac_intakes ins 
+	on outs.animal_id = ins.animal_id
+where outs.datetime < ins.datetime
+order by ins.datetime ASC;
+
+-- 4. 아직 입양을 못간 동물중, 가장 오래보호소에 있던 동물 3마리의 이름과 보호 시작일을 조회하는 sql문
+select ins.name, ins.datetime
+from aac_intakes ins
+	left outer join aac_outcomes outs
+	on ins.animal_id = outs.animal_id
+where outs.datetime is null
+# and ins.name != ""
+# and ins.name not like "*%"
+order by ins.datetime
+limit 3;
+
+-- 5. 보호소에서 중성화 수술을 거친 동물 정보를 알아보려 함
+-- 보호소에 들어올 당시에는 중성화되지 않았지만
+-- 보호소를 나갈 당시에는 중성화된 동물의 데이터를 조회
+select outs.animal_id, outs.animal_type, outs.name, ins.sex_upon_intake , outs.sex_upon_outcome
+from aac_intakes ins
+	inner join aac_outcomes outs
+	on ins.animal_id = outs.animal_id
+where outs.sex_upon_outcome != ins.sex_upon_intake
+order by ins.animal_id ASC;
+
+
 
 
 
