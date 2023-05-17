@@ -53,15 +53,136 @@ create table member( -- 회원 테이블
 	height 		tinyint 	unsigned,					-- 평균 키
 	debut_date 	date									-- 데뷔 일자
 );
+-- 전화번호는 숫자로서의 의미가 없기 때문에 문자열로 지정
+-- 숫자로서의 의미를 가지기 위해서는
+-- -- 더하기/빼기 등의 연산에 의미가 있거나
+-- -- 크다/작다 또는 순서에 의미가 있어야함
 
+-- 대량의 데이터 형식
+-- char 는 최대 255까지, varchar는 최대 16383자 까지 지정이 가능
+-- 즉 더 큰 값을 가지는 데이터는 저장할 수 없음
+-- 대량 데이터 형식
+-- -- text(최대 65535자)
+-- -- longtext(약 42억자)
+-- -- -- 소설이나 영화 대본 등의 대량의 내용을 저장할 떄 사용한다.
+-- -- blob
+-- -- -- binary Long Object의 약자
+-- -- -- 이미지, 동영상 등의 데이터(이진 데이터)를 저장할 때 사용
+-- -- lognblob
+-- -- -- longtext 및 longblob은최대 4GB까지 입력 가능
 
+-- 넷플릭스 같은 동영상을 다루는 사이트의 테이블 구성
+create database netflix_db;
+use netflix_db;
+create table movie(
+	movie_id 		int,
+	movie_title 	varchar(30),
+	movie_director 	varchar(20),
+	movie_star 		varchar(20),
+	movie_script 	longtext,
+	movie_film 		longblob
+);
 
+-- 실수형
+-- 소수점이 있는 숫자를 저장할 때 사용
+-- float (소수점 아래 7자리까지 표현)
+-- double (소수점 아래 15자리까지 표현)
 
+-- 날짜형
+-- 날짜 및 시간을 저장할 때 사
+-- date (날짜만 저장. YYYY-MM-DD)형식으로 사용
+-- time 시간만 저장. HH-MM-SS 형식으로 사용
+-- datetime 날짜및 시간을 저장. YYYY-MM-DD HH:MM:SS 형식으로 사용
 
+-- 변수
+-- sql도 다른 프로그래밍 언어처럼 변수를 선언하고 사용할 수 있음
 
+-- 변수 사용 형식
+set @변수이름 = 변수의 값;
+select @변수이름;
 
+set @myVar1 = 5;
+set @myVar2 = 4.25;
 
+select @myVar1;
+select @myVar2;
 
+select @myVar1 + @myVar2;
 
+set @txt = '가수 이름--> ';
+set @height = 166;
+use market_db;
+select @txt, mem_name, height
+from member
+where height > @height;
 
+-- limit 에는 변수 사용이 불가
+set @count = 3;
 
+select mem_name, height
+from member
+order by height
+limit @count;
+
+-- 대신에 prepare와 execute를 사용할 수 있음
+-- sql문을 실행하지 않고 코드만 준비해두고 execute에서 실행하는 방식
+
+prepare select3 from 'select mem_name, height from member order by height limit ?';
+-- select3 라는 이름으로 sql문을 준비만 함
+-- ? : 현재는 모르지만 나중에 채워지는 값
+
+execute select3 using @count;
+-- using으로 물음표에 @count값을 대입해서 실행
+-- 즉, 아래 코드가 실행되는 것과 같은 결과
+select mem_name, height from member order by height limit 3;
+
+-- 데이터 형 변환
+-- 문자형 데이터를 정수형 데이터로 바꾸거나, 정수형 데이터를 문자형 데이터로 바꾸는 등
+-- 데이터의 형식을 변환하는 것을 데이터 형 변환(type conversion)이라고 함
+-- 형 변환에는 직접 함수를 사용해서 변환하는 명시적 변환(explicit conversion)과
+-- 별도의 지시 없이 자연스럽게 변환되는 암시적 변환(imlicit conversion)이 있음
+
+-- 함수를 이용한 명시적 변환
+-- 데이터 형식을 변환하는 함수는 cast() convert() 두가지가 있다.
+
+-- 사용 방식
+cast (값 as 데이터_형식(길이))
+convert (값, 데이터_형식(길이))
+
+-- 사용 예
+-- 데이터가 실수형임
+select avg(price) as "평균 가격" from buy;
+
+-- 위의 평균 가격을 정수형으로 표현하고 싶다면
+select cast(avg(price) as signed) as "평균 가격" from buy;
+
+select convert(avg(price), signed) as "평균 가격" from buy;
+-- signed : 문자 -> 정수값으로 데이터 형 변환
+
+-- 다양한 구분자를 이용한 문자열 데이터를 날짜형으로 변경
+select cast('2023$02$04' as date);
+select cast('2023/02/04' as date);
+select cast('2023%02%04' as date);
+select cast('2023@02@04' as date);
+
+-- 결과를 원하는 형태로 표현하고 싶을 때
+select num, concat(cast(price as char), 'X', cast(amount as char), '=') "가격X수량",
+price * amount "구매액" from buy;
+
+-- 길이 조절을 원한다면 
+select num, concat(cast(price as char(2)), 'X', cast(amount as char(1)), '=') "가격X수량",
+price * amount "구매액" from buy;
+
+-- 암시적 변환
+-- cast()나 convert()함수를 사용하지 않고 자연스럽게 데이터 형태가 변환되는 것
+select '100' + '200';
+-- 문자는 덧셈이 불가하기 때문에 자동으로 숫자 100과 200으로 변환환 뒤 덧셈을 수행
+
+-- 만약 문자 '100'과 문자 '200'을 연결한 '100200'을 만들려면 concat()을 사용해야 한다.
+select concat('100', '200');
+
+-- 숫자와 문자를 concat()함수로 연결한다면
+select concat(100, '200');
+
+-- 숫자 100과 문자 '200'을 더한다고 한다면
+select 100 + '200';
