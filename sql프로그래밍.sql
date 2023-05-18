@@ -154,6 +154,130 @@ end $$
 delimiter ; 
 call caseProc();
 
+-- case 문의 활용
+-- 인터넷 마켓 데이터베이스의 회원들의 총 구매액을 계산해서 회원의 등급을 4단계로 나누려고 한다.
+-- -- 총 구매액이 1500 이상이면 회원등급은 최우수고객
+-- -- 총 구매액이 1000 ~ 1499 면 회원등급은 우수고객
+-- -- 총 구매액이 1 ~ 999 면 회원등급은 일반고객
+-- -- 총 구매액이 0 이하(구매한적 없음)이면 회원등급은 유령고객
+select m.mem_id, m.mem_name, sum(b.price * b.amount) 총구매액
+, case 
+		when (sum(b.price * b.amount) >= 1500) then '최우수고객'
+		when (sum(b.price * b.amount) >= 1000) then '우수고객'
+		when (sum(b.price * b.amount) >= 1) then '일반고객'
+		else '유령고객'
+	end 회원등급
+from buy b
+	right outer join member m
+	on b.mem_id = m.mem_id
+group by m.mem_id
+order by 총구매액 DESC;
+
+-- while문
+-- 필요한 만큼 계속 같은 내용을 반복
+-- 조건식이 참인 동안 'sql 문장들'을 계속 반복
+
+-- while문의 기본 형식
+while <조건식> do
+	sql 문장들
+end while;
+
+-- while문을 이용해서 1에서 100까지의 값을 모두 더하는 기능 구현
+drop procedure if exists whileProc;
+delimiter $$
+create procedure whileProc()
+begin
+	declare i int; -- 1 에서 100까지 증가할 변수
+	declare hap int; -- 더한 값을 누적할 변수
+	set i = 1;
+	set hap = 0;
+	
+	while(i <= 100) do
+		set hap = hap + i; -- hap의 원래 값에 i를 더해서 다시 hap에 넣기
+		set i = i + 1; -- i의 원래값에 1을 더해서 i의 값에 넣기
+	end while; -- i가 100이하인 동안에 계속 반복
+	select '1부터 100까지의 합==>', hap;
+end $$
+delimiter ;
+call whileProc();
+
+-- while문의 응용
+-- iterate [레이블] : 지정한 레이블로 돌아가 계속 진행, 파이썬의 continue와 유사
+-- leave [레이블] : 지정한 레이블을 빠져나감, 파이썬의 break와 유사
+
+-- 1에서 100까지 합계에서 4의 배수를 제외하고 합게가 1000이 넘으면 더하는 것을 그만두고
+-- 1000이 넘는 순간에 숫자를 출력한 후 프로그램 종료
+drop procedure if exists whileProc2;
+delimiter $$
+create procedure whileProc2()
+begin
+	declare i int; -- 1에서 100까지 증가할 변수
+	declare hap int; -- 더한 값에 누적할 변수
+	set i = 1;
+	set hap = 0;
+	
+	myWhile: -- while문을 myWhile이라는 레이블로 지정
+	while (1 <= 100) do
+		if(i % 4 = 0) then
+			set i = i + 1;
+			iterate myWhile; -- 지정한 레이블로 돌아가서 다시 진행(continue)
+		end if;
+		set hap = hap + i; -- i가 4의 배수가 아니면 hap에 누적
+		if (hap >= 1000) then
+			leave myWhile; -- 지정한 label문을 떠남, while문 종료(break)
+		end if;
+		set i = i + 1;
+	end while;
+	select '1부터 100까지의 합(4의 배수 제외), 1000 넘으면 종료 -->', hap;
+end $$
+delimiter ;
+call whileProc2();
+
+-- 동적 sql
+-- sql문은 내용이 고정되어 있는 경우가 대부분이지만 상황에 따라 내용 변경이 필요할 때
+-- 동적 sql을 사용하면 변경되는 내용을 실시간으로 적용시켜 사용할 수 있음
+
+-- prepare와 execute
+-- prepare : sql문을 실행하지 않고 미리 준비만 해둠
+-- execute : 준비한 sql문을 실행
+-- -- 실행한후에는 deallocate prepare로 문장을 해제
+
+use market_db;
+prepare myQuery from 'select * from member where mem_id = "blk"';
+execute myQuery; -- 실행이 필요한 시점에서 execute myQuery로 실행
+deallocate prepare myQuery;
+
+-- 동적 sql의 활용
+-- prepare문에서는 ?로 향후에 입력될 값을 비워두고, execute에서 using으로 ?에 값을 전달할 수 있음
+-- 실시간으로 필요한 값들을 전달해서 동적으로 sql이 실행
+
+-- 보안이 중요한 출입문에서 출입한 내역을 테이블에 기록하는데
+-- 이때 출입증을 태그하는 순간의 날짜와 시간이 insert문으로 입력되도록 코드 작성
+drop table if exists gate_table;
+-- 출입기록용 테이블 생성
+create table gate_table (id int auto_increment primary key, entry_time datetime);
+
+set @curDate = current_timestamp() -- 현재 날짜와 시간
+
+-- ?를 사용해서 entry_time에 입력할 값을 비워둠
+prepare myQuery from 'insert into gate_table values(null, ?)';
+execute myQuery using @curDate; -- 앞에서 준비한 @curDate변수를 넣은 후 실행
+deallocate prepare myQuery;
+
+select * from gate_table;
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
