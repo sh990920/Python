@@ -66,27 +66,227 @@ show index from table2;
 -- 고유키도 중복을 허용하지 않기 때문에 Non_unique가 0
 -- 고유키를 여러 개 지정할 수 있듯이 보조 인덱스도 여러개 만들 수 있음
 
+-- 클러스터형 인덱스의 특징
+-- 기본키로 지정하면 자동으로 생성됨
+-- 테이블에 1개만 생성됨
+-- 어떤 열을 기본키로 지정해서 클러스터형 인덱스가 생성되면 그 열을 기준으로 자동 정렬됨
+use market_db;
+drop table if exists buy, member;
+create table member(
+	mem_id char(8),
+	mem_name varchar(10),
+	mem_number int,
+	addr char(2)
+);
+insert into member values ("TWC", "트와이스", 9, "서울");
+insert into member values ("BLK", "블랙핑크", 4, "경남");
+insert into member values ("WMN", "여자친구", 6, "경기");
+insert into member values ("OMY", "오마이걸", 7, "서울");
+
+select * from member;
+
+-- 위의 데이터에 기본키를 설정
+alter table member
+	add constraint
+	primary key (mem_id);
+
+select * from member;
+-- 기본키를 설정하면 mem_id를 기준으로 정렬 순서가 바뀜
+-- -- mem_id 열을 기본키로 지정하면서 mem_id열에 클러스터형 인덱스가 설정되어 mem_id 열을 기준으로 정렬된 것
+
+-- mem_id의 primary key를 제거하고 mem_name열을 primary key로 지정
+alter table member drop primary key; -- 기본키 제거
+alter table member
+	add constraint
+	primary key(mem_name);
+select * from member;
+-- mem_name열에 클러스터형 인덱스가 생성되었기 때문에 mem_name열을 기준으로 다시 정렬됨
+
+-- 데이터를 추가로 입력하면 기준에 맞춰 자동 정렬
+insert into member values ("GRL", "소녀시대", 8, "서울");
+select * from member;
+-- -- 대용량 데이터가 있는 상태에서 기본키를 변경하면 시간이 오랙 걸릴 수 있음
+
+-- 보조 인덱스의 특징
+-- 테이블에 여러 개 설정할 수 있음
+-- 보조 인덱스를 만든다고해서 데이터의 순서나 내용이 바뀌지는 않음
+drop table member;
+create table member(
+	mem_id char(8),
+	mem_name varchar(10),
+	mem_number int,
+	addr char(2)
+);
+insert into member values ("TWC", "트와이스", 9, "서울");
+insert into member values ("BLK", "블랙핑크", 4, "경남");
+insert into member values ("WMN", "여자친구", 6, "경기");
+insert into member values ("OMY", "오마이걸", 7, "서울");
+select * from member;
+
+-- mem_id를 고유키로 설정
+alter table member
+	add constraint
+	unique (mem_id);
+
+select * from member;
+-- 데이터의 순서에는 변화가 없음
+-- -- 보조 인덱스를 생성하더라도 데이터의 순서는 변경되지 않고 별도의 인덱스를 만듦
+
+-- mem_name 열에 추가로 고유키 지정
+alter table member
+	add constraint
+	unique (mem_name);
+select * from member;
+-- 데이터의 내용과 순서는 그대로이며, mem_id열과 mem_name열에 모두 보조 인덱스가 생성된 상태임
+
+insert into member values ("GRL", "소녀시대", 8, "서울");
+select * from member;
+-- 새로운 내용이 추가되면 제일 뒤쪽에 추가됨
+
+-- 보조 인덱스는 여러 개 만들 수 있지만, 보조 인덱스를 만들 때 마다 데이터베이스의 공간을 차지하게 되고
+-- 전반적으로 시스템에 오히려 나쁜 영향을 미침
+-- 그러므로 꼭 필요한 열에만 적절히 보조 인덱스를 생성하는 것이 좋음
+
+-- 인덱스 생성
+create [unique] index 인덱스_이름
+	on 테이블_이름 (열_이름) [asc|desc];
+
+-- create index로 생성되는 인덱스는 보조 인덱스임
+-- unique는 중복이 안되는 고유 인덱스를 생성하는 것. 생략하면 중복을 허용함
+-- -- unique 인덱스를 생성하려면 기존에 입력된 값들에 중복이 있으면 안됨
+-- -- 인덱스를 생성한 후에 입력되는 데이터와도 중복될 수 없다.
+-- asc 또는 desc는 인덱스의 오름차순 또는 내림차순으로 만들어줌
+-- -- 기본은 asc로 만들어지며, 굳이 desc로 만드는 경우는 거이 없음
+
+-- 인덱스 제거
+drop index 인덱스_이름 on 테이블_이름;
+-- 기본키, 고유키로 자동 생성된 인덱스는 drop index로 제거하지 못함
+-- -- 자동 생성된 인덱스는 alter table로 기본키나 고유키가 제거되면 함께 제거됨
+
+-- 하나의 테이블에 클러스터형 인덱스와 보조 인덱스가 모두 있는 경우에는
+-- 인덱스를 제거할 때 보조 인덱스부터 제거하는 것이 더 좋음
+-- -- 클러스터형 인덱스가 제거되면 내부적으로 데이터가 재구성되기 때문
+
+-- 인덱스가 많이 생성되어 있는 테이블은 사용하지 않는 인덱스를 제거해주는 것이 성능 향상에 도움이 됨
+use market_db;
+select * from member;
+
+show index from member;
+-- 현재 member 테이블에는 mem_id 열에 클러스터형 인덱스 1개가 설정되어 있음
+
+-- 인덱스 크기 확인
+show table status like 'member'; -- member라는 글자가 들어간 테이블의 정보 라는 의미
+-- data_lenght는 클러스터형 인덱스의 크기를 byte 단위로 표기한 것
+-- 1페이지는 기본적으로 16kb인데 1kb는 1024byte이므로 16 * 1024 = 16384
+-- -- member 테이블의 인덱스는 1페이지가 할당되어 있음
+-- index_lenght는 보조 인덱스의 크기인데 member 테이블에는 현재 보조 인덱스가 없기 때문에 표기되지 않음
+
+-- addr 열에 중복을 허용하는 단순 보조 인덱스 생성
+create index idx_member_addr
+	on member (addr);
+
+show index from member;
+-- Non_unique가 1로 설정되어 중복된 데이터를 허용함
+
+-- 전체 인덱스의 크기를 다시 확인
+show table status like 'member';
+-- 보조 인덱스 idx_member_addr을 생성했음에도 index_lenght가 여전히 0이다.
+-- -- 생성한 인덱스를 실제로 적용시키려면 analyze table문을 먼저 실행해야 한다.
+
+analyze table member;
+show table status like 'member';
+
+-- mem_number에 중복을 허용하지 않는 고유 보조 인덱스 생성
+create unique index idx_member_mem_number
+	on member (mem_number);
+
+-- mem_name에 고유 보조 인덱스 생성
+create unique index idx_member_mem_name
+	on member (mem_name);
 
 
+show index from member;
 
+insert into member values ("MOO", "마마무", 2, "태국", "001", "12341234", 155, "2020.10.10");
+-- mem_name에 고유 보조 인덱스를 생성했기 때문에 mem_name에 중복된 값을 입력할 수 없음
+-- -- 실제 서비스에서 심각한 문제가 발생할 수 있기 때문에 고유 보조 인덱스는 업무상 절때로 중복되지 않는 열에만 생성
 
+-- 인덱스의 활용 실습
+analyze table member; -- 지금까지 만든 인덱스르 모두 적용
+show index from member;
 
+select * from member;
+-- 인덱스가 생성된 열 이름이 sql문에 있지 않으면 인덱스를 사용하지 않음
 
+select mem_id, mem_name, addr from member;
+-- 열 이름이 select 다음에 나와도 인덱스를 사용하지 않음
 
+select mem_id, mem_name, addr
+from member
+where mem_name = "에이핑크";
+-- where절에 열 이름이 들어 있어야 인덱스를 사용함
 
+select mem_name, mem_number from member where mem_number >= 7;
 
+create index idx_member_mem_number
+	on member (mem_number);
+analyze table member;
 
+select mem_name, mem_number from member where mem_number >= 7;
+-- 숫자의 범위로 조회하는 것도 인덱스를 사용함
 
+-- 인덱스를 사용하지 않는 경우
+-- 인덱스가 있고 where절에 열이름이 나와도 인덱스를 사용하지 않는 경우가 있음
+select mem_name, mem_number from member where mem_number >= 1;
+-- mysql이 인덱스 검색보다 전체 테이블 검색이 낫다고 판단해서 전체 테이블 검색을 수행함
+-- -- 대부분의 행을 가져와야 하므로 그냥 전체 데이터를 읽는 것이 더 효율적인 상황
 
+select mem_name, mem_number from member where mem_number * 2 >= 14;
+-- where mem_number >= 7로 조회할 때는 인덱스 검색을 했지만 지금은 전체 테이블 검색을 수행함
+-- -- where 절에서 열에 연산을 가하면 인덱스를 사용하지 않음
 
+select mem_name, mem_number from member where mem_number >= 14 / 2;
+-- 인덱스를 사용함
+-- -- where절에 나온 열에는 아무 연산을 하지 않는 것이 좋음
 
+-- 인덱스 제거 실습
+show index from member;
 
+-- 클러스터형 인덱스와 보조 인덱스가 섞여 있을 때는 보조 인덱스를 먼저 제거하는 것이 좋음
+-- 보조 인덱스 중에는 어떤 것을 제거해도 상관없음
+drop index idx_member_mem_name on member;
+drop index idx_member_addr on member;
+drop index idx_member_mem_number on member;
 
+-- 기본키 지정으로 자동 생성된 클러스터형 인덱스는 drop index로 제거 되지 않고 alter table로 제거해야 한다.
+alter table member
+	drop primary key;
+-- mem_id 열을 buy가 참조하고 있기 때문에 에러 발생
+-- -- 기본키를 제거하기 전에 외래키 관계를 먼저 제거해야함
 
+-- 테이블에는 여러 개의 외래키가 있을 수 있기 때문에 먼저 외래키의 이름을 파악해야함
+select table_name, constraint_name
+from information_schema.referential_constraints
+where constraint_schema = 'market_db';
+-- information_schema 데이터베이스의 referential_constraints 테이블은
+-- mysql에 포함된 시스템 데이터베이스와 테이블
+-- -- mysql 전체의 외래키 정보가 들어있음
 
+-- 외래키를 먼저 제거하고 기본키 제거
+alter table buy
+	drop foreign key buy_ibfk_1;
 
+alter table member
+	drop primary key;
 
-
-
-
-
+-- 인덱스를 효과적으로 사용하는 방법
+-- 1. 인덱스는 열 단위에 생성
+-- 2. where 절에서 사용되는 열에 인덱스를 생성
+-- 3. where 절에서 사용되더라도 자주 사용될수록 인덱스의 가치가 있음
+-- -- 만약 select문은 1년에 한 번만 사용되고, insert문이 주로 사용된다면 오히려 인덱스로 인해 성능이 나빠짐
+-- 4. 데이터의 중복이 많은 열은 인덱스를 만들어도 효과가 없음
+-- 5. 클러스터형 인덱스는 테이블당 하나만 생성할 수 있음
+-- -- 클러스터형 인덱스는 보조 인덱스보다 성능이 더 우수함
+-- -- 따라서 클러스터형 인덱스는 조회시 가장 많이 사용되는 열에 지정하는 것이 가장 효과적
+-- 6. 사용하지 않는 인덱스는 제거
+-- -- 공관 확보 뿐만 아니라 데이터 입력 시에 발생하는 부하도 줄일 수 있음
