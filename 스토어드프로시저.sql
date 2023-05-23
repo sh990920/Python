@@ -95,3 +95,97 @@ call user_proc3("테스트1", @myValue);
 select concat("입력된 ID 값 ==>", @myValue);
 select * from noTable;
 
+-- 출력 매개변수가 있는 스토어드 프로시저 호출
+-- 가수 이름을 입력받아 데뷔 연도가 2015년 이전이면 '고참 가수', 2015년 이후(2015년 포함)이면 '신인 가수'를
+-- 출력하는 스토어드 프로시저를 작성
+select * from member;
+desc member;
+drop procedure if exists ifelse_proc;
+delimiter $$
+create procedure ifelse_proc(in name varchar(10), out printValue char(5))
+begin
+	declare debutDate date;
+	select debut_date into debutDate from member where mem_name = name;
+	if year(debutDate) < 2015 then
+		set printValue = "고참 가수";
+	else
+		set printValue = "신인 가수";
+	end if;
+end $$
+delimiter ;
+call ifelse_proc("오마이걸", @myValue);
+select @myValue;
+
+-- 강사님 코드
+drop procedure if exists ifelse_proc;
+delimiter $$
+create procedure ifelse_proc(
+	in memName varchar(10) -- 입력 매개변수로 가수 이름을 받음
+)
+begin
+	declare debutYear int; -- 데뷔 연도를 저장할 변수 선언
+
+	select year(debut_date) into debutYear 
+	from member
+	where mem_name = memName;
+	
+	if debutYear >= 2015 then
+		select "신인 가수";
+	else
+		select "고참 가수";
+	end if;
+end $$
+delimiter ;
+call ifelse_proc("오마이걸");
+
+-- 동적 sql 활용
+-- 테이블 이름을 매개변수로 입력받아 해당 테이블을 조회
+drop procedure if exists dynamic_proc;
+delimiter $$
+create procedure dynimic_proc(
+	in tableName varchar(20)
+)
+begin
+	set @sqlQuery = concat("select * from ", tableName);
+	prepare myQuery from @sqlQuery;
+	execute myQuery;
+	deallocate prepare myQuery;
+end $$
+delimiter ;
+
+call dynimic_proc("member");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
