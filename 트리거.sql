@@ -75,15 +75,65 @@ create table backup_singer(
 	modUser varchar(30)-- 변경한 사용자
 );
 
+-- update와 delete가 발생할 때 작동하는 트리거를 singer 테이블에 부착
+drop trigger if exists singer_updateTrg;
+delimiter $$
+create trigger singer_updateTrg -- 트리거 이름
+	after update -- update 후에 작동하도록 지정
+	on singer -- 트리거를 부착할 테이블
+	for each row
+BEGIN 
+	insert into backup_singer values(old.mem_id, old.mem_name, old.mem_number,
+	old.addr, '수정', curdate(), current_user());
+END $$
+delimiter ;
 
+-- old 테이블은 update나 delete가 수행될 때 변경되기 전의 데이터가 잠깐 저장되는 임시테이블
+-- 테이블에 update문이 작동되면 원래의 데이터가 백업테이블(backup_singer)에 입력됨
+-- curdate() : 현재 날짜
+-- current_user() : 현재 작업중인 사용자
 
+drop trigger if exists singer_deleteTrg;
+delimiter $$
+create trigger singer_deleteTrg -- 트리거 이름
+	after delete -- delete 후에 작동하도록 지정
+	on singer -- 트리거를 부착할 테이블
+	for each row
+BEGIN 
+	insert into backup_singer values(old.mem_id, old.mem_name, old.mem_number,
+	old.addr, '삭제', curdate(), current_user());
+END $$
+delimiter ;
 
+-- 데이터 수정, 삭제
+update singer set addr = "영국" where mem_id = "BLK";
 
+select * from singer;
+-- 백업 테이블 조회
+select * from backup_singer;
 
+delete from singer where mem_number >= 7;
 
+-- 테이블 초기화 테스트
+truncate table singer;
 
+select * from singer;
 
+select * from backup_singer;
+-- truncate table로 삭제시에는 트리거가 작동하지 않는다.
+-- delete 트리거는 오직 delete문에서만 작동
 
+-- 트리거가 사용하는 임시테이블
+-- 테이블에 insert, update, delete 작업이 수행되면 임시로 사용하는 시스템 테이블이 2개(new, old)
+-- 임시 테이블은 mysql이 알아서 생성하고 관리하므로 신경 쓸 필요는 없음
 
+-- new 테이블은 insert문이 실행되면 새 값은 new테이블에 들어갔다가 new테이블에서 목표 테이블로 옮김
+-- delete문이 실행되면 목표 테이블에서 old 테이블로 예전값을 잠깐 옮겨둠
+-- -- 따라서 after delete 트리거로 삭제된 후에 old.열이름 형식으로 예전 값에 접근할 수 있음
 
+-- update를 사용하면 새 값을 new 테이블에 잠깐 넣었다가 목표 테이블로 옮기고 목표 테이블에 있던 예전 값은
+-- old 테이블로 옮겨둠
 
+-- 파이썬 연동 테스트용 데이터베이스
+drop database if exists soloDB;
+create database soloDB;
